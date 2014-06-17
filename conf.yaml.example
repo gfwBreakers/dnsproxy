@@ -1,0 +1,9 @@
+server: server ip when client connect to
+port: server port when client connect to
+forward_dns: dns request forward to
+mode: server|client
+cert_pem: your cert pem file for tls connection
+key_pem: your key pem file for tls connection
+error_log: stderr|syslog|./path/to/log/file
+info_log: stdout|syslog|./path/to/log/file
+debug_log: stdout|syslog|./path/to/log/file
