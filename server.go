@@ -20,13 +20,13 @@ func (s *DnsProxyServer) DnsRequest(args *DnsArgs, reply *[]byte) error {
 	c := &dns.Client{Net: args.Network, ReadTimeout: time.Minute}
 	req := new(dns.Msg)
 	if err := req.Unpack(args.Msg); err != nil {
-		conf.err.Print("request unpack error:", err)
+		conf.err.Print("request unpack error: ", err)
 		return err
 	}
 
 	resp, _, err := c.Exchange(req, conf.ForwardDns)
 	if err != nil {
-		conf.err.Print("dns forward error:", err)
+		conf.err.Print("dns forward error: ", err)
 		return err
 	}
 
@@ -40,12 +40,12 @@ func Server() {
 	listen := fmt.Sprintf("0.0.0.0:%s", conf.Port)
 	l, err := tls.Listen("tcp", listen, &conf.tlsConfig)
 	if err != nil {
-		conf.err.Print("server listen", listen, "failed:", err)
+		conf.err.Print("server listen failed: ", err)
 		return
 	}
 
-	var connChan chan net.Conn
-	var quitChan chan struct{}
+	connChan := make(chan net.Conn)
+	quitChan := make(chan struct{})
 
 	defer func() {
 		l.Close()
@@ -57,7 +57,7 @@ func Server() {
 		for {
 			c, err := l.Accept()
 			if err != nil {
-				conf.err.Print("accept error:", err)
+				conf.err.Print("accept error: ", err)
 				quitChan <- struct{}{}
 				return
 			}

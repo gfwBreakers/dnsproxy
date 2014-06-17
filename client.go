@@ -33,7 +33,7 @@ func (c *ClientDns) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	var reqBuf, respBuf []byte
 	reqBuf, err = req.Pack()
 	if err != nil {
-		conf.err.Print("pack request error:", err)
+		conf.err.Print("pack request error: ", err)
 		return
 	}
 
@@ -48,7 +48,7 @@ func (c *ClientDns) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	}
 	err = m.Unpack(respBuf)
 	if err != nil {
-		conf.err.Print("unpack response error:", err)
+		conf.err.Print("unpack response error: ", err)
 		return
 	}
 
@@ -59,7 +59,7 @@ func Client() {
 	rpcAddr := fmt.Sprintf("%s:%s", conf.Server, conf.Port)
 	c, err := tls.Dial("tcp", rpcAddr, &conf.tlsConfig)
 	if err != nil {
-		conf.err.Print("dial", rpcAddr, "error:", err)
+		conf.err.Print("dial error: ", err)
 		return
 	}
 
@@ -84,7 +84,7 @@ func Client() {
 				Handler: mux,
 			}
 			if err := server.ListenAndServe(); err != nil {
-				conf.err.Print("dns server launch", net, "error:", err)
+				conf.err.Print("dns server launch ", net, " error: ", err)
 				return
 			}
 		}(net)
