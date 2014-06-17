@@ -43,7 +43,7 @@ func (c *ClientDns) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	}
 	err = c.rpc.Call("DnsProxyServer.DnsRequest", args, &respBuf)
 	if err != nil {
-		conf.err.Print("call rpc error:", err)
+		conf.err.Print("call rpc error: ", err)
 		return
 	}
 	err = m.Unpack(respBuf)
