@@ -1,17 +1,40 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"github.com/miekg/dns"
 	"net"
 	"net/rpc"
+	"strings"
 	"sync"
+	"time"
 )
 
 type ClientDns struct {
-	c   net.Conn
-	rpc *rpc.Client
+	c          net.Conn
+	rpc        *rpc.Client
+	dnsClients map[string]*dns.Client
+}
+
+func NewClientDns() (*ClientDns, error) {
+	rpcAddr := fmt.Sprintf("%s:%s", conf.Server, conf.Port)
+	c, err := tls.Dial("tcp", rpcAddr, &conf.tlsConfig)
+	if err != nil {
+		conf.err.Print("dial error: ", err)
+		return nil, err
+	}
+
+	client := rpc.NewClient(c)
+	return &ClientDns{
+		c:   c,
+		rpc: client,
+		dnsClients: map[string]*dns.Client{
+			"tcp": &dns.Client{Net: "tcp", ReadTimeout: time.Minute},
+			"udp": &dns.Client{Net: "udp", ReadTimeout: time.Minute},
+		},
+	}, nil
 }
 
 func (c *ClientDns) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
@@ -30,6 +53,36 @@ func (c *ClientDns) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		}
 	}()
 
+	localForward := true
+	domainBuf := bytes.NewBuffer(nil)
+	for _, question := range req.Question {
+		name := strings.Trim(question.Name, ".")
+		domainBuf.WriteString(name)
+		domainBuf.WriteString("|")
+		if !conf.domainFilter.MatchString(name) {
+			localForward = false
+			break
+		}
+	}
+	if localForward {
+		conf.info.Printf("|local|%s", domainBuf.String())
+		client, ok := c.dnsClients[network]
+		if !ok {
+			conf.err.Print("unknown network: ", network)
+			err = fmt.Errorf("unknown network: %s", network)
+			return
+		}
+		var resp *dns.Msg
+		resp, _, err = client.Exchange(req, conf.ForwardDns)
+		if err != nil {
+			conf.err.Print("dns forward error: ", err)
+			return
+		}
+		w.WriteMsg(resp)
+		return
+	}
+
+	conf.info.Printf("|forward|%s", domainBuf.String())
 	var reqBuf, respBuf []byte
 	reqBuf, err = req.Pack()
 	if err != nil {
@@ -56,20 +109,13 @@ func (c *ClientDns) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 }
 
 func Client() {
-	rpcAddr := fmt.Sprintf("%s:%s", conf.Server, conf.Port)
-	c, err := tls.Dial("tcp", rpcAddr, &conf.tlsConfig)
+	client, err := NewClientDns()
 	if err != nil {
-		conf.err.Print("dial error: ", err)
 		return
 	}
 
-	client := rpc.NewClient(c)
-
 	mux := dns.NewServeMux()
-	mux.Handle(".", &ClientDns{
-		c:   c,
-		rpc: client,
-	})
+	mux.Handle(".", client)
 
 	var group sync.WaitGroup
 	group.Add(2)

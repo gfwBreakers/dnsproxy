@@ -14,10 +14,25 @@ type DnsArgs struct {
 	Network string
 }
 
-type DnsProxyServer struct{}
+type DnsProxyServer struct {
+	clients map[string]*dns.Client
+}
+
+func NewDnsProxyServer() *DnsProxyServer {
+	return &DnsProxyServer{
+		clients: map[string]*dns.Client{
+			"tcp": &dns.Client{Net: "tcp", ReadTimeout: time.Minute},
+			"udp": &dns.Client{Net: "udp", ReadTimeout: time.Minute},
+		},
+	}
+}
 
 func (s *DnsProxyServer) DnsRequest(args *DnsArgs, reply *[]byte) error {
-	c := &dns.Client{Net: args.Network, ReadTimeout: time.Minute}
+	c, ok := s.clients[args.Network]
+	if !ok {
+		conf.err.Print("unknow network: ", args.Network)
+		return fmt.Errorf("unknow network: %s", args.Network)
+	}
 	req := new(dns.Msg)
 	if err := req.Unpack(args.Msg); err != nil {
 		conf.err.Print("request unpack error: ", err)
@@ -36,7 +51,7 @@ func (s *DnsProxyServer) DnsRequest(args *DnsArgs, reply *[]byte) error {
 }
 
 func Server() {
-	s := new(DnsProxyServer)
+	s := NewDnsProxyServer()
 	listen := fmt.Sprintf("0.0.0.0:%s", conf.Port)
 	l, err := tls.Listen("tcp", listen, &conf.tlsConfig)
 	if err != nil {

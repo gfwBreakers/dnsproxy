@@ -11,6 +11,7 @@ import (
 	"log"
 	"log/syslog"
 	"os"
+	"regexp"
 )
 
 type Config struct {
@@ -19,16 +20,18 @@ type Config struct {
 	ForwardDns string `yaml:"forward_dns"`
 	LocalDns   string `yaml:"local_dns"`
 	Mode       string `yaml:"mode"`
+	Domain     string `yaml:"domain"`
 	CertPem    string `yaml:"cert_pem"`
 	KeyPem     string `yaml:"key_pem"`
 	ErrorLog   string `yaml:"error_log"`
 	InfoLog    string `yaml:"info_log"`
 	DebugLog   string `yaml:"debug_log"`
 
-	tlsConfig tls.Config
-	err       *log.Logger
-	info      *log.Logger
-	debug     *log.Logger
+	tlsConfig    tls.Config
+	err          *log.Logger
+	info         *log.Logger
+	debug        *log.Logger
+	domainFilter *regexp.Regexp
 }
 
 var conf Config
@@ -44,7 +47,12 @@ func Init() error {
 		return err
 	}
 	if err := yconf.Unmarshal(f, &conf); err != nil {
-		fmt.Println("parse confi file error:", err)
+		fmt.Println("parse config file error:", err)
+		return err
+	}
+	conf.domainFilter, err = GetFilter(conf.Domain)
+	if err != nil {
+		fmt.Println("domain filter load error:", err)
 		return err
 	}
 	cert, err := tls.LoadX509KeyPair(conf.CertPem, conf.KeyPem)
