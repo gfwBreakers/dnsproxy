@@ -1,6 +1,7 @@
 server: server ip when client connect to
 port: server port when client connect to
 forward_dns: dns request forward to
+local_dns: address of dns server in client
 mode: server|client
 cert_pem: your cert pem file for tls connection
 key_pem: your key pem file for tls connection

@@ -17,6 +17,7 @@ type Config struct {
 	Server     string `yaml:"server"`
 	Port       string `yaml:"port"`
 	ForwardDns string `yaml:"forward_dns"`
+	LocalDns   string `yaml:"local_dns"`
 	Mode       string `yaml:"mode"`
 	CertPem    string `yaml:"cert_pem"`
 	KeyPem     string `yaml:"key_pem"`

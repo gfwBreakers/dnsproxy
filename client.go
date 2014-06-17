@@ -79,7 +79,7 @@ func Client() {
 			defer group.Done()
 
 			server := &dns.Server{
-				Addr:    conf.ForwardDns,
+				Addr:    conf.LocalDns,
 				Net:     net,
 				Handler: mux,
 			}
