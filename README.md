@@ -1,6 +1,6 @@
 # DNS Proxy
 
-A server/client dns proxy, for bypass GFW dns pollution.
+A server/client dns proxy, bypassing GFW dns pollution.
 
 ## TODO
 
